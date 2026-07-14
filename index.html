@@ -266,6 +266,14 @@
             fetchCategoryOdds();
         }
 
+        function safeParseOdds(rawOdds, fallbackDefault) {
+            if (rawOdds === null || rawOdds === undefined || rawOdds === '') return fallbackDefault;
+            if (typeof rawOdds === 'number' && !isNaN(rawOdds)) return rawOdds;
+            let cleanStr = String(rawOdds).replace(/[^-0-9.]/g, '');
+            let parsed = parseInt(cleanStr, 10);
+            return isNaN(parsed) ? fallbackDefault : parsed;
+        }
+
         async function fetchCategoryOdds() {
             const feed = document.getElementById('oddsFeed');
             feed.innerHTML = '<div class="text-center text-xs text-slate-500 py-8 animate-pulse">Loading live streams from SharpAPI...</div>';
@@ -572,15 +580,14 @@
             });
         }
 
-        // UPGRADED ROBUST PIPELINE ERROR RECOVERY FOR LIVE SCORE MATCHES
+        // FIXED ROBUST SCORES CHANNEL (REMOVED RANDOM FICTIONAL GENERATORS)
         async function syncAndSettleBets() {
             let pendingSlips = userState.slips.filter(s => s.status === 'pending');
-            if(pendingSlips.length === 0) return alert("No active pending tickets require updating.");
+            if(pendingSlips.length === 0) return alert("No active pending wagers require updating.");
 
             let results = [];
             
             try {
-                // Graceful check strategy block
                 let response = await fetch(`https://api.sharpapi.io/api/v1/scores`, {
                     method: 'GET', headers: { 'X-API-Key': SHARP_API_KEY, 'Accept': 'application/json' }
                 });
@@ -589,20 +596,17 @@
                     results = json.data || [];
                 }
             } catch (err) {
-                console.warn("Live API scores channels offline. Utilizing seamless localized score engine simulation logic.");
+                console.warn("Live API source down or unreached.");
             }
 
-            // This block runs continuously even if the API times out or fails to answer!
             userState.slips.forEach(s => {
                 if(s.status === 'pending') {
                     s.legs.forEach(leg => {
                         let apiMatch = results.find(r => r.id === leg.matchId || r.match_id === leg.matchId);
                         
-                        if (!apiMatch) {
-                            // Fluctuates progress stats safely without clear-cuts to keep game progression alive
-                            leg.currentAwayScore = (leg.currentAwayScore || 0) + (Math.random() > 0.6 ? 1 : 0);
-                            leg.currentHomeScore = (leg.currentHomeScore || 0) + (Math.random() > 0.6 ? 1 : 0);
-                        } else {
+                        // FIXED: Removed Math.random() increments entirely.
+                        // If no live updates are returned from the API, scores sit tightly at their actual state.
+                        if (apiMatch) {
                             leg.currentAwayScore = parseInt(apiMatch.away_score || 0);
                             leg.currentHomeScore = parseInt(apiMatch.home_score || 0);
                             
@@ -635,7 +639,7 @@
             saveState();
             updateBalanceUI();
             updateSlipsPortfolioUI();
-            alert("Visual bars successfully updated with real-world match parameters!");
+            alert("Live portfolio check complete.");
         }
 
         function claimReload() {
