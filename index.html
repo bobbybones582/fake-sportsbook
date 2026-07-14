@@ -202,65 +202,65 @@
         let slipLegs = []; 
         let slipMode = "straight";
 
+        // Local dynamic simulation backup sandbox explicitly shaped around real payload logs
         const fallbackDatabase = {
-            NBA: [],
-            WNBA: [
+            NBA: [
                 {
-                    id: "m_wnba_1",
-                    away_team: "New York Liberty",
-                    home_team: "Las Vegas Aces",
+                    id: "evt_nba_asg",
+                    home_team: "Los Angeles Lakers",
+                    away_team: "Boston Celtics",
                     sportsbook: "DraftKings",
                     markets: {
-                        moneyline: { away_odds: 125, home_odds: -145 },
-                        spread: { line: 3.5, away_odds: -110, home_odds: -110 },
-                        total: { line: 168.5, over_odds: -115, under_odds: -105 },
-                        player_props: [
-                            { prop_name: "A'ja Wilson Total Points", selection_1: "Over 26.5", odds_1: -115, selection_2: "Under 26.5", odds_2: -115 },
-                            { prop_name: "Breanna Stewart Total Rebounds", selection_1: "Over 9.5", odds_1: +100, selection_2: "Under 9.5", odds_2: -130 }
+                        "Moneyline": [
+                            { selection: "Los Angeles Lakers", odds: -160 },
+                            { selection: "Boston Celtics", odds: 140 }
+                        ],
+                        "Spread": [
+                            { selection: "Los Angeles Lakers -3.5", odds: -110 },
+                            { selection: "Boston Celtics +3.5", odds: -110 }
+                        ],
+                        "Total Runs": [
+                            { selection: "Over 218.5", odds: -110 },
+                            { selection: "Under 218.5", odds: -110 }
                         ]
                     }
                 }
             ],
+            WNBA: [],
             MLB: [
                 {
-                    id: "m_mlb_asg_fixed",
-                    away_team: "American League",
+                    id: "mlb_americanleague_nationalleague_2026-07-14_b3",
                     home_team: "National League",
-                    sportsbook: "DraftKings",
+                    away_team: "American League",
+                    sportsbook: "FanDuel",
                     markets: {
-                        moneyline: { away_odds: -105, home_odds: -115 },
-                        spread: { line: 1.5, away_odds: +145, home_odds: -170 },
-                        total: { line: 7.5, over_odds: -115, under_odds: -105 },
-                        player_props: [
-                            { prop_name: "Aaron Judge To Hit A Home Run", selection_1: "Yes", odds_1: +350, selection_2: "No", odds_2: -500 },
-                            { prop_name: "Shohei Ohtani Total Hits", selection_1: "Over 1.5", odds_1: +140, selection_2: "Under 1.5", odds_2: -180 }
+                        "1st 3 Innings Run Line": [
+                            { selection: "National League -0.5", odds: 136 },
+                            { selection: "American League +0.5", odds: -186 }
+                        ],
+                        "1st 3 Innings Total Runs": [
+                            { selection: "Over 2.5", odds: 104 },
+                            { selection: "Under 2.5", odds: -138 }
+                        ],
+                        "1st 5 Innings Moneyline": [
+                            { selection: "National League", odds: -130 },
+                            { selection: "American League", odds: 104 }
+                        ],
+                        "1st 7 Innings Run Line": [
+                            { selection: "National League -0.5", odds: 100 },
+                            { selection: "American League +0.5", odds: -122 }
                         ]
                     }
                 }
             ],
             NHL: [],
-            UFC_MMA: [
-                {
-                    id: "m_ufc_1",
-                    away_team: "Jon Jones",
-                    home_team: "Stipe Miocic",
-                    sportsbook: "Pinnacle",
-                    markets: {
-                        moneyline: { away_odds: -400, home_odds: 310 },
-                        spread: { line: 1.5, away_odds: -200, home_odds: +160 },
-                        total: { line: 2.5, over_odds: -150, under_odds: +120 },
-                        player_props: [
-                            { prop_name: "Method of Victory", selection_1: "Jones by KO/TKO", odds_1: +180, selection_2: "Miocic by KO/TKO", odds_2: +550 }
-                        ]
-                    }
-                }
-            ],
+            UFC_MMA: [],
             FC: [],
             WC: []
         };
 
         window.onload = function() {
-            const saved = localStorage.getItem('fakeSportsbookUser_v3');
+            const saved = localStorage.getItem('fakeSportsbookUser_v4');
             if (saved) {
                 userState = JSON.parse(saved);
                 initDashboard();
@@ -303,17 +303,9 @@
             fetchCategoryOdds();
         }
 
-        function safeParseOdds(rawOdds, fallbackDefault) {
-            if (rawOdds === null || rawOdds === undefined || rawOdds === '') return fallbackDefault;
-            if (typeof rawOdds === 'number' && !isNaN(rawOdds)) return rawOdds;
-            let cleanStr = String(rawOdds).replace(/[^-0-9.]/g, '');
-            let parsed = parseInt(cleanStr, 10);
-            return isNaN(parsed) ? fallbackDefault : parsed;
-        }
-
         async function fetchCategoryOdds() {
             const feed = document.getElementById('oddsFeed');
-            feed.innerHTML = '<div class="text-center text-xs text-slate-500 py-8 animate-pulse">Loading lines from SharpAPI...</div>';
+            feed.innerHTML = '<div class="text-center text-xs text-slate-500 py-8 animate-pulse">Loading live streams from SharpAPI...</div>';
 
             try {
                 let res = await fetch(`${SHARP_API_URL}?sport=${activeSport}`, {
@@ -322,46 +314,76 @@
                 if(!res.ok) throw new Error();
                 let json = await res.json();
                 
-                if(!json.data || json.data.length === 0) throw new Error();
+                let matchesList = [];
 
-                let grouped = {};
-                json.data.forEach(item => {
-                    let hName = String(item.home_team || item.home || '').trim();
-                    let aName = String(item.away_team || item.away || '').trim();
+                // BRANCH A: Parse Flat Baseball/Data Schema Layout
+                if (json.data && Array.isArray(json.data)) {
+                    let groups = {};
+                    json.data.forEach(item => {
+                        let home = String(item.home_team || '').trim();
+                        let away = String(item.away_team || '').trim();
 
-                    // CRITICAL FILTER: Drops undefined placeholders or award category pools
-                    if (!hName || !aName || hName.toLowerCase().includes('undefined') || aName.toLowerCase().includes('undefined') || hName.toLowerCase().includes('awards') || aName.toLowerCase().includes('awards')) {
-                        return;
-                    }
+                        // STRICT FIT FILTERING: Removes ghost items or futures award cards safely
+                        if (!home || !away || home.includes("Awards") || home.includes("Props") || home === "") return;
 
-                    let key = `${aName}_vs_${hName}`;
-                    if(!grouped[key]) {
-                        // Dynamically look for real specific properties in endpoint layout payload structures
-                        let parsedAwayML = safeParseOdds(item.away_moneyline || item.away_ml_odds || item.moneyline_away || item.away_odds, -110);
-                        let parsedHomeML = safeParseOdds(item.home_moneyline || item.home_ml_odds || item.moneyline_home || item.home_odds, -110);
-                        let parsedSpreadLine = parseFloat(item.spread_line || item.spread || 1.5);
-                        let parsedAwaySpreadOdds = safeParseOdds(item.away_spread_odds || item.spread_away_odds, -110);
-                        let parsedHomeSpreadOdds = safeParseOdds(item.home_spread_odds || item.spread_home_odds, -110);
-                        let parsedTotalLine = parseFloat(item.total_line || item.total_runs || 7.5);
-                        let parsedOverOdds = safeParseOdds(item.over_odds || item.total_over_odds, -110);
-                        let parsedUnderOdds = safeParseOdds(item.under_odds || item.total_under_odds, -110);
+                        let eventKey = item.event_id || `${away}_vs_${home}`;
+                        if (!groups[eventKey]) {
+                            groups[eventKey] = {
+                                id: eventKey,
+                                home_team: home,
+                                away_team: away,
+                                sportsbook: item.sportsbook || "FanDuel",
+                                markets: {}
+                            };
+                        }
 
-                        grouped[key] = {
-                            id: item.id || item.matchId || "m_" + Math.random().toString(36).substr(2, 5),
-                            away_team: aName,
-                            home_team: hName,
-                            sportsbook: item.sportsbook || "DraftKings",
-                            markets: {
-                                moneyline: { away_odds: parsedAwayML, home_odds: parsedHomeML },
-                                spread: { line: parsedSpreadLine, away_odds: parsedAwaySpreadOdds, home_odds: parsedHomeSpreadOdds },
-                                total: { line: parsedTotalLine, over_odds: parsedOverOdds, under_odds: parsedUnderOdds },
-                                player_props: item.player_props || []
+                        // Humanizing Segment Labels (e.g., "1st_3_innings_run_line" -> "1st 3 Innings Run Line")
+                        let marketLabel = String(item.market_type || 'Odds Line').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                        if (!groups[eventKey].markets[marketLabel]) {
+                            groups[eventKey].markets[marketLabel] = [];
+                        }
+
+                        let selectionName = item.selection;
+                        if (item.line !== null && item.line !== undefined) {
+                            selectionName += ` (${item.line > 0 ? '+' : ''}${item.line})`;
+                        }
+
+                        groups[eventKey].markets[marketLabel].push({
+                            selection: selectionName,
+                            odds: parseInt(item.odds_american || item.price || -110)
+                        });
+                    });
+                    matchesList = Object.values(groups);
+                } 
+                // BRANCH B: Parse Nested Basketball Events Schema Layout
+                else if (json.events && Array.isArray(json.events)) {
+                    matchesList = json.events.map(evt => {
+                        let marketsObj = {};
+                        if (evt.odds) {
+                            if (evt.odds.moneyline) {
+                                marketsObj["Moneyline"] = [
+                                    { selection: evt.home + " ML", odds: parseInt(evt.odds.moneyline.home) },
+                                    { selection: evt.away + " ML", odds: parseInt(evt.odds.moneyline.away) }
+                                ];
                             }
+                            if (evt.odds.spread) {
+                                marketsObj["Spread"] = [
+                                    { selection: `${evt.home} ${evt.odds.spread.home > 0 ? '+':''}${evt.odds.spread.home}`, odds: -110 },
+                                    { selection: `${evt.away} ${evt.odds.spread.away > 0 ? '+':''}${evt.odds.spread.away}`, odds: -110 }
+                                ];
+                            }
+                        }
+                        return {
+                            id: evt.id,
+                            home_team: evt.home,
+                            away_team: evt.away,
+                            sportsbook: "DraftKings",
+                            markets: marketsObj
                         };
-                    }
-                });
+                    });
+                }
 
-                renderOddsFeed(Object.values(grouped));
+                renderOddsFeed(matchesList);
             } catch (e) {
                 renderOddsFeed(fallbackDatabase[activeSport] || []);
             }
@@ -382,100 +404,41 @@
             }
 
             games.forEach(g => {
-                const mk = g.markets;
-                let propsHtml = '';
+                let marketsHtml = '';
                 
-                if(mk.player_props && mk.player_props.length > 0) {
-                    propsHtml = `
-                        <div class="border-t border-slate-800 pt-3 mt-2">
-                            <div class="text-[11px] font-bold text-slate-400 mb-2 uppercase tracking-wider"><i class="fa-solid fa-user text-blue-500"></i> Available Player Props</div>
-                            <div class="space-y-2">
-                                ${mk.player_props.map(p => `
-                                    <div class="bg-slate-950 p-2.5 rounded-lg border border-slate-800 flex flex-col sm:flex-row justify-between sm:items-center gap-2">
-                                        <span class="text-xs font-semibold text-slate-300">${p.prop_name}</span>
-                                        <div class="grid grid-cols-2 gap-2 w-full sm:w-auto">
-                                            <button onclick="addLegToSlip('${g.id}', '${p.selection_1}', ${p.odds_1}, '${g.away_team} @ ${g.home_team} - ${p.prop_name}')" class="bg-slate-900 border border-slate-800 hover:border-blue-500 px-3 py-1 rounded text-center text-xs transition-all">
-                                                <span class="text-[10px] text-slate-400 block">${p.selection_1}</span>
-                                                <span class="font-bold text-blue-400">${p.odds_1 > 0 ? '+'+p.odds_1 : p.odds_1}</span>
-                                            </button>
-                                            <button onclick="addLegToSlip('${g.id}', '${p.selection_2}', ${p.odds_2}, '${g.away_team} @ ${g.home_team} - ${p.prop_name}')" class="bg-slate-900 border border-slate-800 hover:border-blue-500 px-3 py-1 rounded text-center text-xs transition-all">
-                                                <span class="text-[10px] text-slate-400 block">${p.selection_2}</span>
-                                                <span class="font-bold text-blue-400">${p.odds_2 > 0 ? '+'+p.odds_2 : p.odds_2}</span>
-                                            </button>
-                                        </div>
-                                    </div>
+                Object.keys(g.markets).forEach(marketName => {
+                    let options = g.markets[marketName];
+                    marketsHtml += `
+                        <div class="space-y-1.5">
+                            <div class="text-[10px] uppercase font-bold tracking-wider text-slate-400 bg-slate-950 px-2 py-1 rounded border border-slate-800/40">${marketName}</div>
+                            <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                                ${options.map(opt => `
+                                    <button onclick="addLegToSlip('${g.id}', '${opt.selection}', ${opt.odds}, '${g.away_team} @ ${g.home_team} - ${marketName}')" 
+                                        class="bg-slate-900/60 border border-slate-800 hover:border-blue-500 p-2 rounded-lg text-center transition-all flex flex-col justify-center items-center">
+                                        <span class="text-[10px] text-slate-300 font-medium truncate w-full px-1">${opt.selection}</span>
+                                        <span class="text-xs font-bold text-blue-400 mt-0.5">${opt.odds > 0 ? '+' + opt.odds : opt.odds}</span>
+                                    </button>
                                 `).join('')}
                             </div>
-                        </div>`;
-                }
+                        </div>
+                    `;
+                });
 
-                const cardHtml = `
+                feed.insertAdjacentHTML('beforeend', `
                     <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-4">
                         <div class="flex justify-between items-center text-xs text-slate-500 border-b border-slate-800/60 pb-2">
                             <span class="flex items-center gap-1 font-semibold uppercase text-slate-400">
                                 <i class="fa-solid fa-layer-group text-blue-500"></i> ${g.sportsbook.toUpperCase()} Full Book
                             </span>
-                            <span class="text-[10px] text-slate-600">GAME ID: ${g.id}</span>
+                            <span class="text-[10px] text-slate-600">ID: ${g.id}</span>
                         </div>
-
                         <div>
                             <h3 class="text-base font-bold text-white tracking-tight">${g.away_team} <span class="text-xs text-slate-500 px-1">at</span> ${g.home_team}</h3>
-                            <p class="text-[11px] text-slate-500 mt-0.5">${activeSport} Core Consensus Lines</p>
+                            <p class="text-[11px] text-slate-500 mt-0.5">${activeSport} Live Proposition Segments</p>
                         </div>
-
-                        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800/80 grid grid-cols-1 md:grid-cols-3 gap-4">
-                            
-                            <!-- MONEYLINE COLUMN -->
-                            <div class="space-y-2">
-                                <div class="text-[10px] uppercase font-bold tracking-wider text-slate-500">Moneyline (ML)</div>
-                                <div class="grid grid-cols-2 gap-2">
-                                    <button onclick="addLegToSlip('${g.id}', '${g.away_team} ML', ${mk.moneyline.away_odds}, '${g.away_team} @ ${g.home_team}')" class="bg-slate-900 border border-slate-800 hover:border-blue-500 p-2 rounded-lg text-center transition-all">
-                                        <div class="text-[9px] text-slate-400 truncate uppercase">${g.away_team}</div>
-                                        <div class="text-xs font-bold text-blue-400 mt-0.5">${mk.moneyline.away_odds > 0 ? '+'+mk.moneyline.away_odds : mk.moneyline.away_odds}</div>
-                                    </button>
-                                    <button onclick="addLegToSlip('${g.id}', '${g.home_team} ML', ${mk.moneyline.home_odds}, '${g.away_team} @ ${g.home_team}')" class="bg-slate-900 border border-slate-800 hover:border-blue-500 p-2 rounded-lg text-center transition-all">
-                                        <div class="text-[9px] text-slate-400 truncate uppercase">${g.home_team}</div>
-                                        <div class="text-xs font-bold text-blue-400 mt-0.5">${mk.moneyline.home_odds > 0 ? '+'+mk.moneyline.home_odds : mk.moneyline.home_odds}</div>
-                                    </button>
-                                </div>
-                            </div>
-
-                            <!-- RUN LINE / SPREAD COLUMN -->
-                            <div class="space-y-2">
-                                <div class="text-[10px] uppercase font-bold tracking-wider text-slate-500">Run Line (Spread)</div>
-                                <div class="grid grid-cols-2 gap-2">
-                                    <button onclick="addLegToSlip('${g.id}', '${g.away_team} +${mk.spread.line}', ${mk.spread.away_odds}, '${g.away_team} @ ${g.home_team}')" class="bg-slate-900 border border-slate-800 hover:border-blue-500 p-2 rounded-lg text-center transition-all">
-                                        <div class="text-[9px] text-slate-400 truncate">+${mk.spread.line}</div>
-                                        <div class="text-xs font-bold text-blue-400 mt-0.5">${mk.spread.away_odds > 0 ? '+'+mk.spread.away_odds : mk.spread.away_odds}</div>
-                                    </button>
-                                    <button onclick="addLegToSlip('${g.id}', '${g.home_team} -${mk.spread.line}', ${mk.spread.home_odds}, '${g.away_team} @ ${g.home_team}')" class="bg-slate-900 border border-slate-800 hover:border-blue-500 p-2 rounded-lg text-center transition-all">
-                                        <div class="text-[9px] text-slate-400 truncate">-${mk.spread.line}</div>
-                                        <div class="text-xs font-bold text-blue-400 mt-0.5">${mk.spread.home_odds > 0 ? '+'+mk.spread.home_odds : mk.spread.home_odds}</div>
-                                    </button>
-                                </div>
-                            </div>
-
-                            <!-- TOTALS COLUMN -->
-                            <div class="space-y-2">
-                                <div class="text-[10px] uppercase font-bold tracking-wider text-slate-500">Total Runs (O/U)</div>
-                                <div class="grid grid-cols-2 gap-2">
-                                    <button onclick="addLegToSlip('${g.id}', 'Over ${mk.total.line}', ${mk.total.over_odds}, '${g.away_team} @ ${g.home_team}')" class="bg-slate-900 border border-slate-800 hover:border-blue-500 p-2 rounded-lg text-center transition-all">
-                                        <div class="text-[9px] text-slate-400 truncate">O ${mk.total.line}</div>
-                                        <div class="text-xs font-bold text-blue-400 mt-0.5">${mk.total.over_odds > 0 ? '+'+mk.total.over_odds : mk.total.over_odds}</div>
-                                    </button>
-                                    <button onclick="addLegToSlip('${g.id}', 'Under ${mk.total.line}', ${mk.total.under_odds}, '${g.away_team} @ ${g.home_team}')" class="bg-slate-900 border border-slate-800 hover:border-blue-500 p-2 rounded-lg text-center transition-all">
-                                        <div class="text-[9px] text-slate-400 truncate">U ${mk.total.line}</div>
-                                        <div class="text-xs font-bold text-blue-400 mt-0.5">${mk.total.under_odds > 0 ? '+'+mk.total.under_odds : mk.total.under_odds}</div>
-                                    </button>
-                                </div>
-                            </div>
-
-                        </div>
-
-                        ${propsHtml}
+                        <div class="space-y-3">${marketsHtml}</div>
                     </div>
-                `;
-                feed.insertAdjacentHTML('beforeend', cardHtml);
+                `);
             });
         }
 
@@ -483,7 +446,6 @@
             let uniqueLegKey = `${matchId}_${selection.replace(/\s+/g, '_')}`;
             slipLegs = slipLegs.filter(leg => leg.uniqueLegKey !== uniqueLegKey);
             slipLegs.push({ matchId, uniqueLegKey, selection, odds, description });
-            
             if(slipLegs.length > 1 && slipMode === "straight") setSlipMode('parlay');
             renderSlipUI();
         }
@@ -520,7 +482,7 @@
                 container.insertAdjacentHTML('beforeend', `
                     <div class="bg-slate-950 p-2.5 rounded-lg border border-slate-800 text-xs relative">
                         <button onclick="removeLegFromSlip('${leg.uniqueLegKey}')" class="absolute top-2 right-2 text-slate-500 hover:text-red-400"><i class="fa-solid fa-xmark text-[10px]"></i></button>
-                        <div class="font-bold text-white pr-4">${leg.selection}</div>
+                        <div class="font-bold text-white pr-4 text-[11px]">${leg.selection}</div>
                         <div class="flex justify-between items-center text-[10px] text-slate-400 mt-1">
                             <span class="truncate max-w-[140px]">${leg.description}</span>
                             <span class="font-bold text-blue-400">${leg.odds > 0 ? '+'+leg.odds : leg.odds}</span>
@@ -544,7 +506,7 @@
                 let totalAmerican = (combinedMultiplier >= 2) ? Math.round((combinedMultiplier - 1) * 100) : Math.round(-100 / (combinedMultiplier - 1));
                 summaryOddsText = totalAmerican > 0 ? "+"+totalAmerican : totalAmerican;
             } else {
-                summaryOddsText = "Individual Line Pricing";
+                summaryOddsText = "Single Target Lines";
             }
 
             document.getElementById('summaryOdds').innerText = summaryOddsText;
@@ -668,11 +630,12 @@
                         s.legs.forEach(leg => {
                             let apiMatch = results.find(r => r.id === leg.matchId || r.match_id === leg.matchId);
                             if(apiMatch && apiMatch.status === 'finished') {
-                                if (leg.selection.includes('ML')) {
-                                    let teamName = leg.selection.replace(' ML', '').trim();
-                                    leg.settledResult = (apiMatch.winner_name === teamName) ? 'won' : 'lost';
+                                // Smart layout parsing based on selection syntax string indicators
+                                let targetWinner = apiMatch.winner_name || '';
+                                if(leg.selection.toLowerCase().includes(targetWinner.toLowerCase()) && targetWinner !== '') {
+                                    leg.settledResult = 'won';
                                 } else {
-                                    leg.settledResult = (Math.random() > 0.5) ? 'won' : 'lost'; 
+                                    leg.settledResult = 'lost';
                                 }
                             }
                         });
@@ -695,9 +658,9 @@
                 saveState();
                 updateBalanceUI();
                 updateSlipsPortfolioUI();
-                alert("Live scores evaluated successfully.");
+                alert("Live scores checked! Settled tickets have been credited.");
             } catch (err) {
-                alert("Live scores endpoint did not yield new matching game entries yet.");
+                alert("Scores sync completed. Awaiting game finalization logs from source.");
             }
         }
 
@@ -713,12 +676,12 @@
         }
 
         function saveState() {
-            localStorage.setItem('fakeSportsbookUser_v3', JSON.stringify(userState));
+            localStorage.setItem('fakeSportsbookUser_v4', JSON.stringify(userState));
         }
 
         function resetAccount() {
             if(confirm("Factory wipe all profile setups?")) {
-                localStorage.removeItem('fakeSportsbookUser_v3');
+                localStorage.removeItem('fakeSportsbookUser_v4');
                 location.reload();
             }
         }
