@@ -580,7 +580,7 @@
             });
         }
 
-        // FIXED ROBUST SCORES CHANNEL (REMOVED RANDOM FICTIONAL GENERATORS)
+        // IMPROVED DETECTOR: AUTOMATICALLY RESETS ABSENT API LOGS BACK TO 0
         async function syncAndSettleBets() {
             let pendingSlips = userState.slips.filter(s => s.status === 'pending');
             if(pendingSlips.length === 0) return alert("No active pending wagers require updating.");
@@ -596,7 +596,7 @@
                     results = json.data || [];
                 }
             } catch (err) {
-                console.warn("Live API source down or unreached.");
+                console.warn("Live API stream offline.");
             }
 
             userState.slips.forEach(s => {
@@ -604,8 +604,6 @@
                     s.legs.forEach(leg => {
                         let apiMatch = results.find(r => r.id === leg.matchId || r.match_id === leg.matchId);
                         
-                        // FIXED: Removed Math.random() increments entirely.
-                        // If no live updates are returned from the API, scores sit tightly at their actual state.
                         if (apiMatch) {
                             leg.currentAwayScore = parseInt(apiMatch.away_score || 0);
                             leg.currentHomeScore = parseInt(apiMatch.home_score || 0);
@@ -618,6 +616,10 @@
                                     leg.settledResult = 'lost';
                                 }
                             }
+                        } else {
+                            // FIXED: Clear past random increments back to clean reality baseline (0s)
+                            leg.currentAwayScore = 0;
+                            leg.currentHomeScore = 0;
                         }
                     });
 
@@ -639,7 +641,7 @@
             saveState();
             updateBalanceUI();
             updateSlipsPortfolioUI();
-            alert("Live portfolio check complete.");
+            alert("Live portfolio check complete. Fictional tracking data cleared back to real-time baselines.");
         }
 
         function claimReload() {
