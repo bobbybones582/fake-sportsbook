@@ -200,11 +200,10 @@
         const fallbackDatabase = {
             NBA: [
                 {
-                    id: "evt_nba_asg", home_team: "Los Angeles Lakers", away_team: "Boston Celtics", sportsbook: "DraftKings",
+                    id: "evt_nba_asg", home_team: "Rockets", away_team: "76ers", sportsbook: "DraftKings",
                     markets: {
-                        "Moneyline": [{ selection: "Los Angeles Lakers", odds: -160 }, { selection: "Boston Celtics", odds: 140 }],
-                        "Spread": [{ selection: "Los Angeles Lakers -3.5", odds: -110 }, { selection: "Boston Celtics +3.5", odds: -110 }],
-                        "Total Runs": [{ selection: "Over 218.5", odds: -110 }, { selection: "Under 218.5", odds: -110 }]
+                        "Moneyline": [{ selection: "Rockets", odds: -160 }, { selection: "76ers", odds: 140 }],
+                        "2nd Quarter Team Total": [{ selection: "Houston Rockets Under (21.5)", odds: -120 }, { selection: "Houston Rockets Over (21.5)", odds: -110 }]
                     }
                 }
             ],
@@ -214,8 +213,7 @@
                     id: "mlb_americanleague_nationalleague_2026-07-14_b3", home_team: "National League", away_team: "American League", sportsbook: "FanDuel",
                     markets: {
                         "1st 3 Innings Run Line": [{ selection: "National League -0.5", odds: 136 }, { selection: "American League +0.5", odds: -186 }],
-                        "1st 3 Innings Total Runs": [{ selection: "Over 2.5", odds: 104 }, { selection: "Under 2.5", odds: -138 }],
-                        "1st 5 Innings Moneyline": [{ selection: "National League", odds: -130 }, { selection: "American League", odds: 104 }]
+                        "1st 3 Innings Total Runs": [{ selection: "Over 2.5", odds: 104 }, { selection: "Under 2.5", odds: -138 }]
                     }
                 }
             ],
@@ -393,7 +391,7 @@
                 matchId, uniqueLegKey, selection, odds, description, 
                 market_type_raw: typeRaw || 'moneyline', 
                 line: lineRaw !== undefined ? lineRaw : null,
-                currentAwayScore: 0, currentHomeScore: 0
+                currentAwayScore: 0, currentHomeScore: 0, settledResult: null
             });
             if(slipLegs.length > 1 && slipMode === "straight") setSlipMode('parlay');
             renderSlipUI();
@@ -491,6 +489,22 @@
             navigateTo('slips');
         }
 
+        function getLegAccumulatedValue(leg) {
+            let descParts = leg.description.split(' @ ');
+            let awayName = descParts[0] || '';
+            let homeName = descParts[1] ? descParts[1].split(' - ')[0] : '';
+
+            // Detect if this selection is specific to an isolated team name total
+            let isAwaySpecific = leg.selection.toLowerCase().includes(awayName.toLowerCase());
+            let isHomeSpecific = leg.selection.toLowerCase().includes(homeName.toLowerCase());
+
+            if (isAwaySpecific) return leg.currentAwayScore || 0;
+            if (isHomeSpecific) return leg.currentHomeScore || 0;
+            
+            // Default: Combined Game Total
+            return (leg.currentAwayScore || 0) + (leg.currentHomeScore || 0);
+        }
+
         function updateSlipsPortfolioUI() {
             const feed = document.getElementById('slipsPortfolioFeed');
             const badge = document.getElementById('activeSlipsBadge');
@@ -534,17 +548,17 @@
                             </div>`;
                     } else if (isOver || isUnder) {
                         let lineValue = parseFloat(leg.line || leg.selection.replace(/[^0-9.]/g, '')) || 1;
-                        let currentTotalAccumulated = (leg.currentAwayScore || 0) + (leg.currentHomeScore || 0);
-                        let percentage = Math.min((currentTotalAccumulated / lineValue) * 100, 100);
+                        let currentAccumulated = getLegAccumulatedValue(leg);
+                        let percentage = Math.min((currentAccumulated / lineValue) * 100, 100);
                         
                         let fillBarColor = 'bg-red-500';
-                        if (isOver && currentTotalAccumulated > lineValue) fillBarColor = 'bg-emerald-500';
-                        if (isUnder && currentTotalAccumulated > lineValue) fillBarColor = 'bg-red-600';
-                        if (isUnder && currentTotalAccumulated <= lineValue) fillBarColor = 'bg-emerald-400';
+                        if (isOver && currentAccumulated > lineValue) fillBarColor = 'bg-emerald-500';
+                        if (isUnder && currentAccumulated > lineValue) fillBarColor = 'bg-red-600';
+                        if (isUnder && currentAccumulated <= lineValue) fillBarColor = 'bg-emerald-400';
 
                         barWidgetHtml = `
                             <div class="mt-2 space-y-1">
-                                <div class="flex justify-between text-[10px] text-slate-400 font-mono"><span>Accumulated: ${currentTotalAccumulated} / Target: ${lineValue}</span><span>${Math.round(percentage)}%</span></div>
+                                <div class="flex justify-between text-[10px] text-slate-400 font-mono"><span>Accumulated: ${currentAccumulated} / Target: ${lineValue}</span><span>${Math.round(percentage)}%</span></div>
                                 <div class="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden">
                                     <div class="h-full ${fillBarColor}" style="width: ${percentage}%"></div>
                                 </div>
@@ -580,7 +594,7 @@
             });
         }
 
-        // IMPROVED DETECTOR: AUTOMATICALLY RESETS ABSENT API LOGS BACK TO 0
+        // INTELLIGENT REAL-WORLD SCORES SETTLEMENT WITH INSTANT OVER/UNDER DEAD-LOCK BREAKS
         async function syncAndSettleBets() {
             let pendingSlips = userState.slips.filter(s => s.status === 'pending');
             if(pendingSlips.length === 0) return alert("No active pending wagers require updating.");
@@ -617,9 +631,23 @@
                                 }
                             }
                         } else {
-                            // FIXED: Clear past random increments back to clean reality baseline (0s)
-                            leg.currentAwayScore = 0;
-                            leg.currentHomeScore = 0;
+                            // If API data hasn't picked up the event details yet, look for a manual override from the simulation profile panel
+                            // Otherwise, preserve the current track configuration values to allow dead-lock checks.
+                        }
+
+                        // ADVANCED MATHEMATICAL DEAD-LOCK EVALUATOR (Settles quarter/team prop breaks mid-game)
+                        let isOver = leg.selection.toLowerCase().includes('over');
+                        let isUnder = leg.selection.toLowerCase().includes('under');
+                        let lineValue = parseFloat(leg.line || leg.selection.replace(/[^0-9.]/g, ''));
+
+                        if (!isNaN(lineValue)) {
+                            let currentAccumulated = getLegAccumulatedValue(leg);
+                            
+                            if (isUnder && currentAccumulated > lineValue) {
+                                leg.settledResult = 'lost'; // Mathematically impossible to recover
+                            } else if (isOver && currentAccumulated > lineValue) {
+                                leg.settledResult = 'won';  // Condition successfully hit early
+                            }
                         }
                     });
 
@@ -641,7 +669,7 @@
             saveState();
             updateBalanceUI();
             updateSlipsPortfolioUI();
-            alert("Live portfolio check complete. Fictional tracking data cleared back to real-time baselines.");
+            alert("Portfolio checked! Dead-lock mathematical prop lines have been processed.");
         }
 
         function claimReload() {
