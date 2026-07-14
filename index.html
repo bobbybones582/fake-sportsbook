@@ -202,36 +202,23 @@
         let slipLegs = []; 
         let slipMode = "straight";
 
-        // Structured Database Blueprint explicitly defining properties to match the layout engine safely
+        // Accurate Fallback Engine containing only realistic active events
         const fallbackDatabase = {
-            NBA: [
-                { id: "m_nba_1", away_team: "Boston Celtics", home_team: "LA Lakers", away_odds: 110, home_odds: -130, sportsbook: "DraftKings" },
-                { id: "m_nba_2", away_team: "Golden State Warriors", home_team: "Miami Heat", away_odds: 140, home_odds: -165, sportsbook: "FanDuel" }
-            ],
+            NBA: [], // In off-season, cleanly forces "No games available" screen
             WNBA: [
                 { id: "m_wnba_1", away_team: "New York Liberty", home_team: "Las Vegas Aces", away_odds: 125, home_odds: -145, sportsbook: "BetMGM" },
                 { id: "m_wnba_2", away_team: "Seattle Storm", home_team: "Minnesota Lynx", away_odds: -110, home_odds: -110, sportsbook: "DraftKings" }
             ],
             MLB: [
-                { id: "m_mlb_1", away_team: "New York Yankees", home_team: "Boston Red Sox", away_odds: -105, home_odds: -115, sportsbook: "Pinnacle" },
-                { id: "m_mlb_2", away_team: "LA Dodgers", home_team: "San Francisco Giants", away_odds: -180, home_odds: 155, sportsbook: "DraftKings" }
+                { id: "m_mlb_asg", away_team: "American League", home_team: "National League", away_odds: -105, home_odds: -115, sportsbook: "DraftKings" }
             ],
-            NHL: [
-                { id: "m_nhl_1", away_team: "Edmonton Oilers", home_team: "Florida Panthers", away_odds: 115, home_odds: -135, sportsbook: "FanDuel" },
-                { id: "m_nhl_2", away_team: "New York Rangers", home_team: "New Jersey Devils", away_odds: -110, home_odds: -110, sportsbook: "BetMGM" }
-            ],
+            NHL: [],
             UFC_MMA: [
                 { id: "m_ufc_1", away_team: "Jon Jones", home_team: "Stipe Miocic", away_odds: -400, home_odds: 310, sportsbook: "Pinnacle" },
                 { id: "m_ufc_2", away_team: "Islam Makhachev", home_team: "Arman Tsarukyan", away_odds: -250, home_odds: 205, sportsbook: "DraftKings" }
             ],
-            FC: [
-                { id: "m_fc_1", away_team: "Real Madrid", home_team: "Barcelona", away_odds: 135, home_odds: 185, sportsbook: "DraftKings" },
-                { id: "m_fc_2", away_team: "Manchester City", home_team: "Arsenal", away_odds: -115, home_odds: 220, sportsbook: "FanDuel" }
-            ],
-            WC: [
-                { id: "m_wc_1", away_team: "Argentina", home_team: "France", away_odds: 150, home_odds: 160, sportsbook: "Pinnacle" },
-                { id: "m_wc_2", away_team: "Brazil", home_team: "Germany", away_odds: -105, home_odds: 190, sportsbook: "DraftKings" }
-            ]
+            FC: [],
+            WC: [] // Cleanly empty to enforce real-world empty states
         };
 
         window.onload = function() {
@@ -278,6 +265,20 @@
             fetchCategoryOdds();
         }
 
+        // Robust parsing utility designed to completely mitigate NaN issues
+        function safeParseOdds(rawOdds, fallbackDefault) {
+            if (rawOdds === null || rawOdds === undefined || rawOdds === '') return fallbackDefault;
+            
+            // If it's already a clean number, use it
+            if (typeof rawOdds === 'number' && !isNaN(rawOdds)) return rawOdds;
+            
+            // Clean out string formatting characters
+            let cleanStr = String(rawOdds).replace(/[^-0-9.]/g, '');
+            let parsed = parseInt(cleanStr, 10);
+            
+            return isNaN(parsed) ? fallbackDefault : parsed;
+        }
+
         async function fetchCategoryOdds() {
             const feed = document.getElementById('oddsFeed');
             feed.innerHTML = '<div class="text-center text-xs text-slate-500 py-8 animate-pulse">Loading lines from SharpAPI...</div>';
@@ -289,19 +290,17 @@
                 if(!res.ok) throw new Error();
                 let json = await res.json();
                 
-                // Normalizing payload format to match our variable fields safely
                 let sanitizedData = (json.data || []).map(item => ({
                     id: item.id || item.matchId || "m_" + Math.random().toString(36).substr(2, 5),
                     away_team: item.away_team || item.away,
                     home_team: item.home_team || item.home,
-                    away_odds: parseInt(item.away_odds || item.awayOdds),
-                    home_odds: parseInt(item.home_odds || item.homeOdds),
+                    away_odds: safeParseOdds(item.away_odds || item.awayOdds, -110),
+                    home_odds: safeParseOdds(item.home_odds || item.homeOdds, -110),
                     sportsbook: item.sportsbook || "SharpOdds"
                 }));
 
                 renderOddsFeed(sanitizedData);
             } catch (e) {
-                // Use safely configured fallback matching datasets if CORS/Network limits request
                 renderOddsFeed(fallbackDatabase[activeSport] || []);
             }
         }
@@ -321,7 +320,7 @@
             }
 
             matches.forEach(m => {
-                if(!m.away_team || !m.home_team) return; // Drop corrupted values safely
+                if(!m.away_team || !m.home_team) return;
 
                 const html = `
                     <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
@@ -518,7 +517,7 @@
             });
         }
 
-        // REAL-WORLD LIVE SETTLEMENT ENGINE (No Auto-Resolution)
+        // REAL-WORLD LIVE SETTLEMENT ENGINE
         async function syncAndSettleBets() {
             let pendingSlips = userState.slips.filter(s => s.status === 'pending');
             if(pendingSlips.length === 0) {
@@ -527,7 +526,6 @@
             }
 
             try {
-                // Fetch real finished game scores from SharpAPI endpoints
                 let response = await fetch(`https://api.sharpapi.io/api/v1/scores`, {
                     method: 'GET', headers: { 'X-API-Key': SHARP_API_KEY, 'Accept': 'application/json' }
                 });
@@ -535,15 +533,9 @@
                 let json = response.ok ? await response.json() : { data: [] };
                 let results = json.data || [];
 
-                // Fallback simulation layout tool matching live data if scores route is restricted locally
-                if(results.length === 0) {
-                    console.log("No new settled games matched on SharpAPI score endpoint. Running system alignment.");
-                }
-
                 userState.slips.forEach(s => {
                     if(s.status === 'pending') {
                         s.legs.forEach(leg => {
-                            // Loop to see if match has been updated in database results pool
                             let apiMatch = results.find(r => r.id === leg.matchId || r.match_id === leg.matchId);
                             if(apiMatch && apiMatch.status === 'finished') {
                                 leg.settledResult = (apiMatch.winner_name === leg.selection) ? 'won' : 'lost';
