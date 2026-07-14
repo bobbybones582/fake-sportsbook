@@ -4,657 +4,643 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fake Sportsbook - Bet Coins on Live Sports</title>
-    <!-- Tailwind CSS for modern responsive layout -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome for high-quality dashboard icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* Custom scrollbar styling to match the dark premium theme */
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #0f172a;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #334155;
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #475569;
-        }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        .tab-active { border-bottom: 3px solid #3b82f6; color: #ffffff !important; font-weight: bold; }
     </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans">
 
-    <!-- TOP HEADER -->
+    <!-- HEADER / NAVIGATION -->
     <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-40">
-        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-            <div class="flex items-center gap-3">
-                <div class="bg-emerald-500 text-slate-950 p-2 rounded-lg font-black tracking-wider text-lg shadow-lg shadow-emerald-500/10">
-                    <i class="fa-solid fa-ticket-simple"></i> FAKE
+        <div class="max-w-7xl mx-auto px-4 flex justify-between items-center h-16">
+            <div class="flex items-center gap-6">
+                <div class="flex items-center gap-2 cursor-pointer" onclick="navigateTo('home')">
+                    <div class="bg-blue-600 text-white p-2 rounded-lg font-black tracking-wider text-sm shadow-lg shadow-blue-600/10">
+                        <i class="fa-solid fa-ticket-simple"></i> FAKE
+                    </div>
+                    <span class="text-lg font-bold tracking-tight bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">SPORTSBOOK</span>
                 </div>
-                <span class="text-xl font-bold tracking-tight bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">SPORTSBOOK</span>
+                
+                <!-- Page Router Tabs -->
+                <nav class="hidden md:flex items-center h-16 text-sm text-slate-400 gap-1 font-medium">
+                    <button onclick="navigateTo('home')" id="nav-home" class="px-3 h-16 flex items-center hover:text-white transition-all tab-active">Home</button>
+                    <button onclick="navigateTo('slips')" id="nav-slips" class="px-3 h-16 flex items-center hover:text-white transition-all relative">My Slips <span id="activeSlipsBadge" class="ml-1 bg-blue-500 text-slate-950 text-[10px] px-1.5 py-0.5 font-bold rounded-full hidden">0</span></button>
+                    <button onclick="navigateTo('promos')" id="nav-promos" class="px-3 h-16 flex items-center hover:text-white transition-all">Promos</button>
+                    <button onclick="navigateTo('profile')" id="nav-profile" class="px-3 h-16 flex items-center hover:text-white transition-all">Profile</button>
+                </nav>
             </div>
 
-            <!-- Header Balance & User Controls -->
-            <div class="flex items-center gap-4">
+            <!-- Balance Tracker -->
+            <div class="flex items-center gap-3">
                 <div id="userInfoDisplay" class="hidden flex items-center gap-3">
                     <div class="bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-full flex items-center gap-2">
-                        <i class="fa-solid fa-coins text-emerald-400"></i>
-                        <span id="userBalance" class="font-bold text-emerald-400">$100.00</span>
+                        <i class="fa-solid fa-coins text-yellow-500"></i>
+                        <span id="userBalance" class="font-bold text-yellow-500">$100.00</span>
                     </div>
-                    <div class="bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-full flex items-center gap-2">
-                        <i class="fa-solid fa-user text-slate-400 text-xs"></i>
-                        <span id="usernameHeader" class="text-xs font-semibold text-slate-300">Player</span>
-                    </div>
-                    <button onclick="resetAccount()" class="text-slate-500 hover:text-red-400 text-sm transition-all" title="Reset Account">
-                        <i class="fa-solid fa-arrow-rotate-left"></i>
-                    </button>
                 </div>
             </div>
         </div>
     </header>
 
-    <!-- SIGN UP MODAL (FOR FIRST-TIME USERS) -->
-    <div id="signUpModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md flex items-center justify-center z-50 transition-all">
+    <!-- SIGN UP MODAL -->
+    <div id="signUpModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md flex items-center justify-center z-50 transition-all hidden">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl relative overflow-hidden">
-            <div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-emerald-500 to-teal-500"></div>
-            <h2 class="text-2xl font-bold mb-2 flex items-center gap-2">
-                <i class="fa-solid fa-champagne-glasses text-emerald-400 animate-bounce"></i> Welcome to Fake Sportsbook!
-            </h2>
-            <p class="text-slate-400 text-sm mb-6">
-                Sign up today and get credited with <span class="text-emerald-400 font-bold">$100.00</span> in fake betting coins to play around with live, real-world sports odds.
-            </p>
+            <div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-500 to-indigo-500"></div>
+            <h2 class="text-2xl font-bold mb-2 flex items-center gap-2">🏈 Welcome Bettor!</h2>
+            <p class="text-slate-400 text-sm mb-6">Sign up now and get credited with <span class="text-yellow-500 font-bold">$100.00</span> in fake money to wager across any sport category.</p>
             <form id="signUpForm" onsubmit="handleSignUp(event)" class="space-y-4">
                 <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Choose a Username</label>
-                    <input type="text" id="usernameInput" required placeholder="e.g., SharpBettor99" 
-                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-emerald-500 transition-colors">
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Create Username</label>
+                    <input type="text" id="usernameInput" required placeholder="e.g., ParlayKing7" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-blue-500 transition-colors">
                 </div>
-                <button type="submit" class="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold py-3 px-4 rounded-xl shadow-lg shadow-emerald-500/20 transition-all transform active:scale-[0.98]">
-                    Claim My Free $100 & Start Betting
-                </button>
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded-xl shadow-lg shadow-blue-500/20 transition-all">Claim $100 & Open Book</button>
             </form>
         </div>
     </div>
 
-    <!-- MAIN INTERACTIVE LAYOUT -->
+    <!-- MAIN APP WRAPPER -->
     <main class="flex-grow max-w-7xl mx-auto px-4 py-6 w-full grid grid-cols-1 lg:grid-cols-12 gap-6">
         
-        <!-- LEFT MENU / FILTER PANEL (Col Span 3) -->
-        <aside class="lg:col-span-3 space-y-4">
-            <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
-                <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">Live Sports Categories</h3>
-                <div class="flex flex-col gap-1" id="leagueFilterGroup">
-                    <button onclick="changeLeague('NBA')" class="league-btn px-3 py-2 rounded-lg text-left flex items-center justify-between text-emerald-400 bg-slate-800 font-medium transition-all" data-league="NBA">
-                        <span>🏀 NBA Basketball</span>
-                        <i class="fa-solid fa-chevron-right text-xs opacity-50"></i>
-                    </button>
-                    <button onclick="changeLeague('MLB')" class="league-btn px-3 py-2 rounded-lg text-left flex items-center justify-between text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 transition-all" data-league="MLB">
-                        <span>⚾ MLB Baseball</span>
-                        <i class="fa-solid fa-chevron-right text-xs opacity-0 group-hover:opacity-100"></i>
-                    </button>
-                    <button onclick="changeLeague('NFL')" class="league-btn px-3 py-2 rounded-lg text-left flex items-center justify-between text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 transition-all" data-league="NFL">
-                        <span>🏈 NFL Football</span>
-                        <i class="fa-solid fa-chevron-right text-xs opacity-0"></i>
-                    </button>
-                    <button onclick="changeLeague('EPL')" class="league-btn px-3 py-2 rounded-lg text-left flex items-center justify-between text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 transition-all" data-league="EPL">
-                        <span>⚽ English Premier League</span>
-                        <i class="fa-solid fa-chevron-right text-xs opacity-0"></i>
-                    </button>
-                </div>
-            </div>
-
-            <!-- API Status Indicator -->
-            <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
-                <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">System Status</h3>
-                <div class="space-y-3">
-                    <div class="flex items-center justify-between text-xs">
-                        <span class="text-slate-400">Data Feed</span>
-                        <span id="feedStatus" class="flex items-center gap-1.5 text-emerald-400 font-medium">
-                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> SharpAPI Live
-                        </span>
-                    </div>
-                    <div class="text-[11px] text-slate-500 bg-slate-950 p-2.5 rounded border border-slate-800 break-all leading-relaxed">
-                        <span class="font-semibold block text-slate-400 mb-1">Authenticated Endpoint:</span>
-                        sk_live_V9VYHW...
-                    </div>
-                </div>
-            </div>
-        </aside>
-
-        <!-- CENTER PANEL - LIVE ODDS CARD FEED (Col Span 6) -->
-        <section class="lg:col-span-6 space-y-4">
-            <!-- Feed Title Area -->
-            <div class="flex justify-between items-center bg-slate-900 border border-slate-800 p-4 rounded-xl">
-                <div>
-                    <span id="currentLeagueLabel" class="text-xs font-bold uppercase tracking-widest text-emerald-400">NBA Basketball</span>
-                    <h2 class="text-xl font-extrabold tracking-tight">Active Match Market Lines</h2>
-                </div>
-                <button onclick="fetchLatestOdds()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 p-2.5 rounded-lg border border-slate-700 transition-all text-sm flex items-center gap-2" id="refreshBtn">
-                    <i class="fa-solid fa-arrows-rotate"></i>
-                    Refresh
-                </button>
-            </div>
-
-            <!-- Error banner if client-side CORS restricts direct fetch -->
-            <div id="corsWarning" class="hidden bg-amber-500/10 border border-amber-500/20 text-amber-300 p-4 rounded-xl text-xs space-y-2">
-                <div class="flex items-center gap-2 font-bold text-sm">
-                    <i class="fa-solid fa-triangle-exclamation text-amber-400"></i>
-                    Local CORS Restriction / Simulation Mode Active
-                </div>
-                <p>
-                    Browsers block direct client-side requests to third-party APIs (CORS). We've initiated the <strong>SharpAPI Live Odds Sandbox</strong> so you can experience full betting integration seamlessly.
-                </p>
-            </div>
-
-            <!-- Loading Skeleton -->
-            <div id="oddsLoader" class="hidden space-y-3">
-                <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 animate-pulse h-32"></div>
-                <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 animate-pulse h-32"></div>
-            </div>
-
-            <!-- Odds Feed Wrapper -->
-            <div id="oddsFeed" class="space-y-3">
-                <!-- Dynamically populated odds will render here -->
-            </div>
-        </section>
-
-        <!-- RIGHT PANEL - BET SLIP & ACCOUNT STATS (Col Span 3) -->
-        <aside class="lg:col-span-3 space-y-4">
+        <!-- PAGES MAIN CONTROLLER CONTAINER (Col Span 9) -->
+        <div class="lg:col-span-9 space-y-4">
             
-            <!-- BET SLIP -->
-            <div class="bg-slate-900 border-2 border-slate-800 rounded-xl overflow-hidden sticky top-[80px]" id="betSlipContainer">
+            <!-- PAGE 1: HOME (SPORTS INTERFACE) -->
+            <div id="page-home" class="space-y-4 page-view">
+                <!-- Horizontal Reference-Matched Sport Carousel -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-2 overflow-x-auto flex items-center gap-1 whitespace-nowrap scrollbar-none">
+                    <button onclick="changeSport('NBA')" id="sport-NBA" class="px-4 py-2 rounded-lg font-bold text-sm tracking-wide bg-blue-600 text-white transition-all">NBA</button>
+                    <button onclick="changeSport('WNBA')" id="sport-WNBA" class="px-4 py-2 rounded-lg font-bold text-sm tracking-wide text-slate-400 hover:bg-slate-800 hover:text-white transition-all">WNBA</button>
+                    <button onclick="changeSport('MLB')" id="sport-MLB" class="px-4 py-2 rounded-lg font-bold text-sm tracking-wide text-slate-400 hover:bg-slate-800 hover:text-white transition-all">MLB</button>
+                    <button onclick="changeSport('NHL')" id="sport-NHL" class="px-4 py-2 rounded-lg font-bold text-sm tracking-wide text-slate-400 hover:bg-slate-800 hover:text-white transition-all">NHL</button>
+                    <button onclick="changeSport('UFC_MMA')" id="sport-UFC_MMA" class="px-4 py-2 rounded-lg font-bold text-sm tracking-wide text-slate-400 hover:bg-slate-800 hover:text-white transition-all">UFC/MMA</button>
+                    <button onclick="changeSport('FC')" id="sport-FC" class="px-4 py-2 rounded-lg font-bold text-sm tracking-wide text-slate-400 hover:bg-slate-800 hover:text-white transition-all">FC</button>
+                    <button onclick="changeSport('WC')" id="sport-WC" class="px-4 py-2 rounded-lg font-bold text-sm tracking-wide text-slate-400 hover:bg-slate-800 hover:text-white transition-all">WC</button>
+                </div>
+
+                <div id="corsWarning" class="hidden bg-amber-500/10 border border-amber-500/20 text-amber-300 p-4 rounded-xl text-xs">
+                    <i class="fa-solid fa-triangle-exclamation text-amber-400 mr-1"></i> Local Browser CORS Policy restrictions detected. Activating the SharpAPI Market Emulator.
+                </div>
+
+                <div id="oddsFeed" class="space-y-3"></div>
+            </div>
+
+            <!-- PAGE 2: MY SLIPS -->
+            <div id="page-slips" class="hidden space-y-4 page-view">
+                <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex justify-between items-center">
+                    <div>
+                        <h2 class="text-xl font-bold">Wager Slips Portfolio</h2>
+                        <p class="text-xs text-slate-400">Track pending live game matchups and scored history logs.</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="slipsPortfolioFeed"></div>
+            </div>
+
+            <!-- PAGE 3: PROMOS -->
+            <div id="page-promos" class="hidden space-y-4 page-view">
+                <div class="bg-slate-900 border border-slate-800 p-6 rounded-xl relative overflow-hidden bg-gradient-to-r from-blue-900/40 to-slate-900">
+                    <h2 class="text-2xl font-black text-white mb-1">🔥 DAILY ODDS BOOSTS</h2>
+                    <p class="text-slate-400 text-sm mb-4">Claim zero-risk promos or claim daily balance injections below.</p>
+                    <button onclick="claimReload()" class="bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-bold px-4 py-2 rounded-lg text-xs tracking-wide shadow-lg shadow-yellow-500/10 transition-all">
+                        Claim Daily $50 Refresh Allowance
+                    </button>
+                </div>
+            </div>
+
+            <!-- PAGE 4: PROFILE & CONTROLLER PANEL -->
+            <div id="page-profile" class="hidden space-y-4 page-view">
+                <div class="bg-slate-900 border border-slate-800 p-6 rounded-xl space-y-6">
+                    <div>
+                        <h2 class="text-xl font-bold mb-1">User Account Profile</h2>
+                        <p class="text-slate-400 text-xs">Manage authentication identities and handle market simulations.</p>
+                    </div>
+                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 max-w-sm">
+                        <div class="text-xs text-slate-500 uppercase font-bold mb-1">Active Username</div>
+                        <div id="profileUsernameDisplay" class="text-lg font-bold text-white">Bettor</div>
+                    </div>
+
+                    <!-- REVOLUTIONARY: GAME RESOLUTION CONTROLLER BAR -->
+                    <div class="border-t border-slate-800 pt-6 space-y-3">
+                        <div>
+                            <h3 class="text-md font-bold text-blue-400 flex items-center gap-2">
+                                <i class="fa-solid fa-gamepad"></i> Game Resolution Simulator
+                            </h3>
+                            <p class="text-xs text-slate-400 mt-0.5">Since bets do not auto-resolve, use this panel to finalize active matches and score your open wagers or parlays instantly!</p>
+                        </div>
+                        <div id="simulatorControlsGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <!-- Injected dynamically based on open games -->
+                        </div>
+                    </div>
+
+                    <button onclick="resetAccount()" class="bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white border border-red-500/20 px-4 py-2 rounded-lg text-xs font-bold transition-all">
+                        Full Account Data Factory Wipe
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- RIGHT PANEL: PERSISTENT MULTI-LEG PARLAY BET SLIP (Col Span 3) -->
+        <aside class="lg:col-span-3 space-y-4">
+            <div class="bg-slate-900 border-2 border-slate-800 rounded-xl overflow-hidden sticky top-20" id="betSlipContainer">
                 <div class="bg-slate-800 px-4 py-3 border-b border-slate-700 flex justify-between items-center">
-                    <h3 class="font-bold text-slate-100 flex items-center gap-2 text-sm uppercase tracking-wider">
-                        <i class="fa-solid fa-receipt text-emerald-400"></i> Bet Slip
+                    <h3 class="font-bold text-slate-100 flex items-center gap-2 text-xs uppercase tracking-wider">
+                        <i class="fa-solid fa-receipt text-blue-500"></i> Wager Slip
                     </h3>
-                    <span id="slipCount" class="bg-emerald-500 text-slate-950 text-xs font-bold px-2 py-0.5 rounded-full">0</span>
+                    <span id="slipCount" class="bg-blue-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">0</span>
                 </div>
 
                 <!-- Empty State -->
                 <div id="emptySlipState" class="p-8 text-center text-slate-500 space-y-2">
                     <i class="fa-solid fa-ticket text-3xl opacity-30"></i>
-                    <p class="text-xs">Your bet slip is empty.</p>
-                    <p class="text-[11px] text-slate-600">Select any market outcome to queue a wager.</p>
+                    <p class="text-xs">Select match lines to form straight bets or multi-leg Parlays.</p>
                 </div>
 
-                <!-- Active Slip Controls -->
+                <!-- Active Slip Container -->
                 <div id="activeSlipControls" class="hidden p-4 space-y-4">
-                    <div class="bg-slate-950 p-3.5 rounded-lg border border-slate-800">
-                        <div class="flex justify-between items-start mb-1.5">
-                            <span id="slipSelection" class="font-bold text-xs text-white">Selection</span>
-                            <button onclick="clearSlip()" class="text-slate-500 hover:text-red-400 transition-colors">
-                                <i class="fa-solid fa-xmark text-xs"></i>
-                            </button>
-                        </div>
-                        <div class="flex justify-between text-xs text-slate-400 mb-1">
-                            <span id="slipMarket" class="text-[11px]">Moneyline</span>
-                            <span id="slipOdds" class="font-bold text-emerald-400">+120</span>
-                        </div>
-                        <div class="text-[11px] text-slate-500" id="slipMatch">Lakers @ Celtics</div>
+                    
+                    <!-- Parlay Type Selector -->
+                    <div class="grid grid-cols-2 gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800 text-center text-xs">
+                        <button onclick="setSlipMode('straight')" id="btn-mode-straight" class="py-1.5 rounded font-bold transition-all bg-slate-800 text-white">Straight</button>
+                        <button onclick="setSlipMode('parlay')" id="btn-mode-parlay" class="py-1.5 rounded font-bold transition-all text-slate-400 hover:text-white">Parlay</button>
                     </div>
 
-                    <!-- Stake Input -->
-                    <div>
+                    <!-- Selections Stack -->
+                    <div id="slipLegsContainer" class="space-y-2 max-h-60 overflow-y-auto">
+                        <!-- Injected dynamically -->
+                    </div>
+
+                    <!-- Stake Input Panel -->
+                    <div class="border-t border-slate-800 pt-3">
                         <div class="flex justify-between text-xs mb-1.5">
-                            <span class="text-slate-400">Risk Amount ($)</span>
-                            <span class="text-slate-400">Available: <span class="text-emerald-400 font-semibold" id="slipAvailable">$100.00</span></span>
+                            <span id="stakeInputLabel" class="text-slate-400 font-semibold">Risk Amount ($)</span>
+                            <span class="text-slate-400">Bal: <span class="text-yellow-500 font-bold" id="slipAvailable">$100.00</span></span>
                         </div>
                         <div class="relative">
                             <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                                 <span class="text-slate-500 text-sm">$</span>
                             </div>
-                            <input type="number" id="wagerInput" min="1" step="any" oninput="calculatePayout()" placeholder="Enter amount..."
-                                class="w-full bg-slate-950 border border-slate-800 rounded-lg pl-8 pr-4 py-2 text-slate-100 font-bold focus:outline-none focus:border-emerald-500 text-sm">
+                            <input type="number" id="wagerInput" min="1" step="any" oninput="calculateSlipPayout()" placeholder="Enter risk amount..."
+                                class="w-full bg-slate-950 border border-slate-800 rounded-lg pl-8 pr-4 py-2 text-slate-100 font-bold focus:outline-none focus:border-blue-500 text-sm">
                         </div>
                     </div>
 
-                    <!-- Payout breakdown -->
-                    <div class="bg-slate-950/50 p-3 rounded-lg space-y-1.5 text-xs">
+                    <!-- Financial Breakdown Summary -->
+                    <div class="bg-slate-950/60 p-3 rounded-lg space-y-1 text-xs border border-slate-800">
                         <div class="flex justify-between text-slate-400">
-                            <span>To Win</span>
+                            <span>Total Combined Odds</span>
+                            <span class="font-bold text-blue-400" id="summaryOdds">+0</span>
+                        </div>
+                        <div class="flex justify-between text-slate-400">
+                            <span>To Win Profit</span>
                             <span class="font-medium text-slate-200" id="potentialProfit">$0.00</span>
                         </div>
-                        <div class="flex justify-between text-slate-400 font-bold border-t border-slate-800 pt-1.5 text-slate-200">
-                            <span>Total Payout</span>
-                            <span id="potentialPayout">$0.00</span>
+                        <div class="flex justify-between text-slate-300 font-bold border-t border-slate-800 pt-1 mt-1 text-sm">
+                            <span>Estimated Return</span>
+                            <span id="potentialPayout" class="text-yellow-500">$0.00</span>
                         </div>
                     </div>
 
-                    <button onclick="placeBet()" class="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold py-2.5 px-4 rounded-lg shadow-lg shadow-emerald-500/10 transition-all">
-                        Lock In Wager
+                    <button onclick="placeBetsFromSlip()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 px-4 rounded-lg shadow-lg shadow-blue-500/10 transition-all text-sm">
+                        Lock In Wagers
                     </button>
-                </div>
-            </div>
-
-            <!-- BET HISTORY / LOG -->
-            <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
-                <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3 flex items-center justify-between">
-                    <span>Bet History</span>
-                    <button onclick="clearHistory()" class="text-[10px] text-slate-500 hover:text-red-400 transition-colors uppercase font-bold">Clear All</button>
-                </h3>
-                <div id="betHistoryFeed" class="space-y-2 max-h-[250px] overflow-y-auto">
-                    <!-- Historical wagers display dynamically here -->
-                    <div class="text-center text-xs text-slate-600 py-4 italic">No wagers placed yet.</div>
                 </div>
             </div>
         </aside>
 
     </main>
 
-    <!-- FOOTER -->
-    <footer class="border-t border-slate-900 bg-slate-950 py-8 mt-12 text-center text-xs text-slate-600">
-        <div class="max-w-7xl mx-auto px-4 space-y-2">
-            <p>© 2026 Fake Sportsbook. Integrated with the live API of SharpAPI.io.</p>
-            <p>This is a simulated sandbox betting platform. No real money or actual digital currency is risked.</p>
-        </div>
+    <footer class="border-t border-slate-900 bg-slate-950 py-6 mt-12 text-center text-xs text-slate-600">
+        <p>© 2026 Fake Sportsbook. Integrated with the live API of SharpAPI.io Key: sk_live_V9VYHW...</p>
     </footer>
 
-    <!-- MAIN GAMEPLAY, STORAGE & INTEGRATION SCRIPTS -->
+    <!-- LOGIC MANAGEMENT ENGINE -->
     <script>
-        // SharpAPI Live Key Configured from User Specification
         const SHARP_API_KEY = 'sk_live_V9VYHWk3ZqKRavm8rxQTa8';
         const SHARP_API_URL = 'https://api.sharpapi.io/api/v1/odds';
 
-        // Local Storage State Management
-        let userState = {
-            username: "",
-            balance: 100.00,
-            bets: []
-        };
+        let userState = { username: "", balance: 100.00, slips: [] };
+        let activeSport = "NBA";
+        let slipLegs = []; 
+        let slipMode = "straight"; // "straight" or "parlay"
 
-        let currentLeague = "NBA";
-        let activeSlip = null;
-
-        // Sandboxed fallback odds for guaranteed functionality
-        const fallbackOdds = {
+        // Exhaustive matching layout derived from reference image options
+        const matchDatabase = {
             NBA: [
-                { id: "nba_1", sportsbook: "draftkings", home_team: "Boston Celtics", away_team: "LA Lakers", market_type: "moneyline", selection: "Boston Celtics", odds_american: -130, odds_decimal: 1.77, is_live: true },
-                { id: "nba_2", sportsbook: "draftkings", home_team: "Boston Celtics", away_team: "LA Lakers", market_type: "moneyline", selection: "LA Lakers", odds_american: 110, odds_decimal: 2.10, is_live: true },
-                { id: "nba_3", sportsbook: "fanduel", home_team: "Golden State Warriors", away_team: "Miami Heat", market_type: "moneyline", selection: "Golden State Warriors", odds_american: -150, odds_decimal: 1.67, is_live: false },
-                { id: "nba_4", sportsbook: "fanduel", home_team: "Golden State Warriors", away_team: "Miami Heat", market_type: "moneyline", selection: "Miami Heat", odds_american: 130, odds_decimal: 2.30, is_live: false }
+                { matchId: "m_nba_1", away: "Boston Celtics", home: "LA Lakers", awayOdds: 110, homeOdds: -130 },
+                { matchId: "m_nba_2", away: "Golden State Warriors", home: "Miami Heat", awayOdds: 140, homeOdds: -165 }
+            ],
+            WNBA: [
+                { matchId: "m_wnba_1", away: "New York Liberty", home: "Las Vegas Aces", awayOdds: 125, homeOdds: -145 },
+                { matchId: "m_wnba_2", away: "Seattle Storm", home: "Minnesota Lynx", awayOdds: -110, homeOdds: -110 }
             ],
             MLB: [
-                { id: "mlb_1", sportsbook: "draftkings", home_team: "New York Yankees", away_team: "Boston Red Sox", market_type: "moneyline", selection: "New York Yankees", odds_american: -115, odds_decimal: 1.87, is_live: true },
-                { id: "mlb_2", sportsbook: "draftkings", home_team: "New York Yankees", away_team: "Boston Red Sox", market_type: "moneyline", selection: "Boston Red Sox", odds_american: -105, odds_decimal: 1.95, is_live: true },
-                { id: "mlb_3", sportsbook: "pinnacle", home_team: "LA Dodgers", away_team: "San Francisco Giants", market_type: "moneyline", selection: "LA Dodgers", odds_american: -200, odds_decimal: 1.50, is_live: false },
-                { id: "mlb_4", sportsbook: "pinnacle", home_team: "LA Dodgers", away_team: "San Francisco Giants", market_type: "moneyline", selection: "San Francisco Giants", odds_american: 170, odds_decimal: 2.70, is_live: false }
+                { matchId: "m_mlb_1", away: "New York Yankees", home: "Boston Red Sox", awayOdds: -105, homeOdds: -115 },
+                { matchId: "m_mlb_2", away: "LA Dodgers", home: "San Francisco Giants", awayOdds: -180, homeOdds: 155 }
             ],
-            NFL: [
-                { id: "nfl_1", sportsbook: "betmgm", home_team: "Kansas City Chiefs", away_team: "Buffalo Bills", market_type: "moneyline", selection: "Kansas City Chiefs", odds_american: -110, odds_decimal: 1.91, is_live: false },
-                { id: "nfl_2", sportsbook: "betmgm", home_team: "Kansas City Chiefs", away_team: "Buffalo Bills", market_type: "moneyline", selection: "Buffalo Bills", odds_american: -110, odds_decimal: 1.91, is_live: false },
-                { id: "nfl_3", sportsbook: "draftkings", home_team: "San Francisco 49ers", away_team: "Dallas Cowboys", market_type: "moneyline", selection: "San Francisco 49ers", odds_american: -165, odds_decimal: 1.61, is_live: false },
-                { id: "nfl_4", sportsbook: "draftkings", home_team: "San Francisco 49ers", away_team: "Dallas Cowboys", market_type: "moneyline", selection: "Dallas Cowboys", odds_american: 140, odds_decimal: 2.40, is_live: false }
+            NHL: [
+                { matchId: "m_nhl_1", away: "Edmonton Oilers", home: "Florida Panthers", awayOdds: 115, homeOdds: -135 },
+                { matchId: "m_nhl_2", away: "New York Rangers", home: "New Jersey Devils", awayOdds: -110, homeOdds: -110 }
             ],
-            EPL: [
-                { id: "epl_1", sportsbook: "pinnacle", home_team: "Arsenal", away_team: "Chelsea", market_type: "moneyline", selection: "Arsenal", odds_american: 120, odds_decimal: 2.20, is_live: true },
-                { id: "epl_2", sportsbook: "pinnacle", home_team: "Arsenal", away_team: "Chelsea", market_type: "moneyline", selection: "Chelsea", odds_american: 180, odds_decimal: 2.80, is_live: true },
-                { id: "epl_3", sportsbook: "draftkings", home_team: "Manchester City", away_team: "Liverpool", market_type: "moneyline", selection: "Manchester City", odds_american: -140, odds_decimal: 1.71, is_live: false },
-                { id: "epl_4", sportsbook: "draftkings", home_team: "Manchester City", away_team: "Liverpool", market_type: "moneyline", selection: "Liverpool", odds_american: 240, odds_decimal: 3.40, is_live: false }
+            UFC_MMA: [
+                { matchId: "m_ufc_1", away: "Jon Jones", home: "Stipe Miocic", awayOdds: -400, homeOdds: 310 },
+                { matchId: "m_ufc_2", away: "Islam Makhachev", home: "Arman Tsarukyan", awayOdds: -250, homeOdds: 205 }
+            ],
+            FC: [
+                { matchId: "m_fc_1", away: "Real Madrid", home: "Barcelona", awayOdds: 135, homeOdds: 185 },
+                { matchId: "m_fc_2", away: "Manchester City", home: "Arsenal", awayOdds: -115, homeOdds: 220 }
+            ],
+            WC: [
+                { matchId: "m_wc_1", away: "Argentina", home: "France", awayOdds: 150, homeOdds: 160 },
+                { matchId: "m_wc_2", away: "Brazil", home: "Germany", awayOdds: -105, homeOdds: 190 }
             ]
         };
 
-        // Initialize state on startup
         window.onload = function() {
-            const savedState = localStorage.getItem('fakeSportsbookUser');
-            if (savedState) {
-                userState = JSON.parse(savedState);
-                document.getElementById('signUpModal').classList.add('hidden');
+            const saved = localStorage.getItem('fakeSportsbookUser_v2');
+            if (saved) {
+                userState = JSON.parse(saved);
                 initDashboard();
             } else {
                 document.getElementById('signUpModal').classList.remove('hidden');
             }
         };
 
-        // Complete user sign-up
         function handleSignUp(e) {
             e.preventDefault();
-            const chosenUsername = document.getElementById('usernameInput').value.trim();
-            if(!chosenUsername) return;
-
-            userState = {
-                username: chosenUsername,
-                balance: 100.00,
-                bets: []
-            };
-
-            localStorage.setItem('fakeSportsbookUser', JSON.stringify(userState));
+            const user = document.getElementById('usernameInput').value.trim();
+            if(!user) return;
+            userState = { username: user, balance: 100.00, slips: [] };
+            saveState();
             document.getElementById('signUpModal').classList.add('hidden');
             initDashboard();
         }
 
-        // Setup views & initial odds load
         function initDashboard() {
-            document.getElementById('userInfoDisplay').classList.remove('hidden');
-            document.getElementById('usernameHeader').innerText = userState.username;
+            document.getElementById('profileUsernameDisplay').innerText = userState.username;
             updateBalanceUI();
-            updateHistoryUI();
-            fetchLatestOdds();
+            updateSlipsPortfolioUI();
+            updateSimulatorsUI();
+            fetchCategoryOdds();
         }
 
-        // Change current display category
-        function changeLeague(league) {
-            currentLeague = league;
-            
-            // Adjust menu items UI
-            document.querySelectorAll('.league-btn').forEach(btn => {
-                const isCurrent = btn.getAttribute('data-league') === league;
-                if(isCurrent) {
-                    btn.className = "league-btn px-3 py-2 rounded-lg text-left flex items-center justify-between text-emerald-400 bg-slate-800 font-medium transition-all";
-                } else {
-                    btn.className = "league-btn px-3 py-2 rounded-lg text-left flex items-center justify-between text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 transition-all";
-                }
+        function navigateTo(pageId) {
+            document.querySelectorAll('.page-view').forEach(p => p.classList.add('hidden'));
+            document.getElementById(`page-${pageId}`).classList.remove('hidden');
+            document.querySelectorAll('nav button').forEach(b => b.classList.remove('tab-active'));
+            const targetNav = document.getElementById(`nav-${pageId}`);
+            if(targetNav) targetNav.classList.add('tab-active');
+        }
+
+        function changeSport(sportKey) {
+            activeSport = sportKey;
+            document.querySelectorAll('[id^="sport-"]').forEach(btn => {
+                btn.className = "px-4 py-2 rounded-lg font-bold text-sm tracking-wide text-slate-400 hover:bg-slate-800 hover:text-white transition-all";
             });
-
-            const labels = { 'NBA': 'NBA Basketball', 'MLB': 'MLB Baseball', 'NFL': 'NFL Football', 'EPL': 'Premier League' };
-            document.getElementById('currentLeagueLabel').innerText = labels[league] || league;
-            fetchLatestOdds();
+            document.getElementById(`sport-${sportKey}`).className = "px-4 py-2 rounded-lg font-bold text-sm tracking-wide bg-blue-600 text-white transition-all";
+            fetchCategoryOdds();
         }
 
-        // Live API call with graceful sandbox recovery
-        async function fetchLatestOdds() {
-            const loader = document.getElementById('oddsLoader');
+        async function fetchCategoryOdds() {
             const feed = document.getElementById('oddsFeed');
             const warning = document.getElementById('corsWarning');
-
-            loader.classList.remove('hidden');
             feed.innerHTML = '';
             warning.classList.add('hidden');
 
             try {
-                // Fetch directly from SharpAPI Endpoint
-                const response = await fetch(`${SHARP_API_URL}?league=${currentLeague}`, {
-                    method: 'GET',
-                    headers: {
-                        'X-API-Key': SHARP_API_KEY,
-                        'Accept': 'application/json'
-                    }
+                let res = await fetch(`${SHARP_API_URL}?sport=${activeSport}`, {
+                    method: 'GET', headers: { 'X-API-Key': SHARP_API_KEY, 'Accept': 'application/json' }
                 });
-
-                if(!response.ok) {
-                    throw new Error(`API Status Code: ${response.status}`);
-                }
-
-                const json = await response.json();
+                if(!res.ok) throw new Error("CORS or API offline block");
+                let json = await res.json();
                 renderOddsFeed(json.data || []);
-            } catch (error) {
-                console.warn("API Integration blocked or restricted. Activating Simulation Engine. Reason: ", error.message);
+            } catch (e) {
                 warning.classList.remove('hidden');
-                
-                // Render fallback matches for full interactivity
-                setTimeout(() => {
-                    renderOddsFeed(fallbackOdds[currentLeague] || []);
-                }, 500);
-            } finally {
-                loader.classList.add('hidden');
+                renderOddsFeed(matchDatabase[activeSport] || []);
             }
         }
 
-        // Draw market items to UI
-        function renderOddsFeed(dataList) {
+        function renderOddsFeed(matches) {
             const feed = document.getElementById('oddsFeed');
-            if(dataList.length === 0) {
-                feed.innerHTML = `
-                    <div class="bg-slate-900 border border-slate-800 rounded-xl p-8 text-center text-slate-500">
-                        <i class="fa-solid fa-cloud text-3xl mb-2 opacity-30"></i>
-                        <p class="text-xs">No active match markers open right now.</p>
-                    </div>
-                `;
-                return;
-            }
-
-            // Map data items together into match pairings
-            const pairings = {};
-            dataList.forEach(item => {
-                const pairKey = `${item.home_team}_vs_${item.away_team}`;
-                if(!pairings[pairKey]) {
-                    pairings[pairKey] = [];
-                }
-                pairings[pairKey].push(item);
-            });
-
-            // Loop and build cards
-            Object.keys(pairings).forEach(pairKey => {
-                const list = pairings[pairKey];
-                const home = list[0].home_team;
-                const away = list[0].away_team;
-                const isLive = list.some(item => item.is_live);
-                const book = list[0].sportsbook.toUpperCase();
-
-                // Find Moneyline odds for home and away
-                const homeMl = list.find(item => item.selection === home);
-                const awayMl = list.find(item => item.selection === away);
-
-                if(!homeMl || !awayMl) return;
-
-                const cardHtml = `
-                    <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3 hover:border-slate-700 transition-colors">
+            matches.forEach(m => {
+                const html = `
+                    <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
                         <div class="flex justify-between items-center text-xs text-slate-500">
-                            <span class="flex items-center gap-1">
-                                <i class="fa-solid fa-chart-line text-emerald-500"></i> ${book} Line
-                            </span>
-                            ${isLive ? `
-                                <span class="bg-red-500/10 text-red-400 font-bold px-2 py-0.5 rounded border border-red-500/20 flex items-center gap-1 text-[10px]">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping"></span> LIVE
-                                </span>
-                            ` : `<span class="text-[10px] uppercase font-semibold text-slate-600">Pre-Match</span>`}
+                            <span><i class="fa-solid fa-trophy text-blue-500"></i> Open Market Selection</span>
+                            <span class="text-[10px] text-slate-400 tracking-wider">GAME REFS: ${m.matchId}</span>
                         </div>
-
                         <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
-                            <div class="md:col-span-6 space-y-1">
-                                <div class="font-bold text-white">${away}</div>
-                                <div class="text-xs text-slate-400">at <span class="text-slate-300">${home}</span></div>
+                            <div class="md:col-span-6">
+                                <div class="font-bold text-slate-200 text-sm">${m.away} <span class="text-xs text-slate-500">@</span> ${m.home}</div>
+                                <div class="text-[11px] text-slate-500 mt-0.5">${activeSport} Regulation Match Line</div>
                             </div>
                             <div class="md:col-span-6 grid grid-cols-2 gap-2">
-                                <button onclick="selectBet('${away}', ${awayMl.odds_american}, '${away} @ ${home}', 'Moneyline')" 
-                                    class="bg-slate-950 border border-slate-800 hover:border-emerald-500/40 hover:bg-slate-900 px-3 py-2.5 rounded-lg flex flex-col items-center transition-all">
-                                    <span class="text-[9px] uppercase tracking-wider text-slate-500 font-bold">Away Moneyline</span>
-                                    <span class="text-xs font-black text-emerald-400 mt-1">${formatOdds(awayMl.odds_american)}</span>
+                                <button onclick="addLegToSlip('${m.matchId}', '${m.away}', ${m.awayOdds}, '${m.away} @ ${m.home}')" class="bg-slate-950 border border-slate-800 hover:border-blue-500 px-3 py-2 rounded-lg text-center transition-all">
+                                    <div class="text-[9px] text-slate-500 uppercase truncate">${m.away}</div>
+                                    <div class="text-xs font-bold text-blue-400 mt-0.5">${m.awayOdds > 0 ? '+'+m.awayOdds : m.awayOdds}</div>
                                 </button>
-                                <button onclick="selectBet('${home}', ${homeMl.odds_american}, '${away} @ ${home}', 'Moneyline')"
-                                    class="bg-slate-950 border border-slate-800 hover:border-emerald-500/40 hover:bg-slate-900 px-3 py-2.5 rounded-lg flex flex-col items-center transition-all">
-                                    <span class="text-[9px] uppercase tracking-wider text-slate-500 font-bold">Home Moneyline</span>
-                                    <span class="text-xs font-black text-emerald-400 mt-1">${formatOdds(homeMl.odds_american)}</span>
+                                <button onclick="addLegToSlip('${m.matchId}', '${m.home}', ${m.homeOdds}, '${m.away} @ ${m.home}')" class="bg-slate-950 border border-slate-800 hover:border-blue-500 px-3 py-2 rounded-lg text-center transition-all">
+                                    <div class="text-[9px] text-slate-500 uppercase truncate">${m.home}</div>
+                                    <div class="text-xs font-bold text-blue-400 mt-0.5">${m.homeOdds > 0 ? '+'+m.homeOdds : m.homeOdds}</div>
                                 </button>
                             </div>
                         </div>
                     </div>
                 `;
-                feed.insertAdjacentHTML('beforeend', cardHtml);
+                feed.insertAdjacentHTML('beforeend', html);
             });
         }
 
-        function formatOdds(odds) {
-            return odds > 0 ? `+${odds}` : odds;
+        function addLegToSlip(matchId, selection, odds, description) {
+            // Check duplicate selections for the same matchId to prevent rule errors
+            slipLegs = slipLegs.filter(leg => leg.matchId !== matchId);
+            slipLegs.push({ matchId, selection, odds, description });
+            
+            if(slipLegs.length > 1 && slipMode === "straight") {
+                setSlipMode('parlay');
+            }
+            renderSlipUI();
         }
 
-        // Active selection into the bet slip
-        function selectBet(selection, odds, match, market) {
-            activeSlip = { selection, odds, match, market };
+        function removeLegFromSlip(matchId) {
+            slipLegs = slipLegs.filter(leg => leg.matchId !== matchId);
+            renderSlipUI();
+        }
+
+        function setSlipMode(mode) {
+            slipMode = mode;
+            document.getElementById('btn-mode-straight').className = mode === 'straight' ? 'py-1.5 rounded font-bold transition-all bg-slate-800 text-white' : 'py-1.5 rounded font-bold transition-all text-slate-400 hover:text-white';
+            document.getElementById('btn-mode-parlay').className = mode === 'parlay' ? 'py-1.5 rounded font-bold transition-all bg-slate-800 text-white' : 'py-1.5 rounded font-bold transition-all text-slate-400 hover:text-white';
             
+            document.getElementById('stakeInputLabel').innerText = mode === 'parlay' ? 'Parlay Risk Amount ($)' : 'Straight Risk Per Leg ($)';
+            calculateSlipPayout();
+        }
+
+        function renderSlipUI() {
+            const container = document.getElementById('slipLegsContainer');
+            document.getElementById('slipCount').innerText = slipLegs.length;
+            container.innerHTML = '';
+
+            if(slipLegs.length === 0) {
+                document.getElementById('emptySlipState').classList.remove('hidden');
+                document.getElementById('activeSlipControls').classList.add('hidden');
+                return;
+            }
+
             document.getElementById('emptySlipState').classList.add('hidden');
             document.getElementById('activeSlipControls').classList.remove('hidden');
-            
-            document.getElementById('slipCount').innerText = "1";
-            document.getElementById('slipSelection').innerText = selection;
-            document.getElementById('slipMarket').innerText = market;
-            document.getElementById('slipOdds').innerText = formatOdds(odds);
-            document.getElementById('slipMatch').innerText = match;
             document.getElementById('slipAvailable').innerText = `$${userState.balance.toFixed(2)}`;
 
-            document.getElementById('wagerInput').value = '';
-            document.getElementById('potentialProfit').innerText = '$0.00';
-            document.getElementById('potentialPayout').innerText = '$0.00';
-            document.getElementById('wagerInput').focus();
+            slipLegs.forEach(leg => {
+                const legHtml = `
+                    <div class="bg-slate-950 p-2.5 rounded-lg border border-slate-800 text-xs relative">
+                        <button onclick="removeLegFromSlip('${leg.matchId}')" class="absolute top-2 right-2 text-slate-500 hover:text-red-400"><i class="fa-solid fa-xmark text-[10px]"></i></button>
+                        <div class="font-bold text-white pr-4">${leg.selection}</div>
+                        <div class="flex justify-between items-center text-[10px] text-slate-400 mt-1">
+                            <span class="truncate max-w-[140px]">${leg.description}</span>
+                            <span class="font-bold text-blue-400">${leg.odds > 0 ? '+'+leg.odds : leg.odds}</span>
+                        </div>
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', legHtml);
+            });
+
+            calculateSlipPayout();
         }
 
-        function clearSlip() {
-            activeSlip = null;
-            document.getElementById('slipCount').innerText = "0";
-            document.getElementById('emptySlipState').classList.remove('hidden');
-            document.getElementById('activeSlipControls').classList.add('hidden');
-        }
-
-        // Math algorithm for American odds payout mapping
-        function calculatePayout() {
-            if(!activeSlip) return;
-            const wager = parseFloat(document.getElementById('wagerInput').value);
-            if(isNaN(wager) || wager <= 0) {
-                document.getElementById('potentialProfit').innerText = '$0.00';
-                document.getElementById('potentialPayout').innerText = '$0.00';
-                return;
-            }
-
-            let profit = 0;
-            const americanOdds = activeSlip.odds;
-
-            if(americanOdds > 0) {
-                // Positives (e.g., +150): risk 100 to win 150
-                profit = wager * (americanOdds / 100);
-            } else {
-                // Negatives (e.g., -110): risk 110 to win 100
-                profit = wager * (100 / Math.abs(americanOdds));
-            }
-
-            const total = wager + profit;
-
-            document.getElementById('potentialProfit').innerText = `$${profit.toFixed(2)}`;
-            document.getElementById('potentialPayout').innerText = `$${total.toFixed(2)}`;
-        }
-
-        // Submit Wager action
-        function placeBet() {
-            if(!activeSlip) return;
-            const wager = parseFloat(document.getElementById('wagerInput').value);
-
-            if(isNaN(wager) || wager <= 0) {
-                alert("Please enter a valid risk amount.");
-                return;
-            }
-
-            if(wager > userState.balance) {
-                alert("Insufficient funds! Choose a lower amount or reset your wallet.");
-                return;
-            }
-
-            // Subtract balance
-            userState.balance -= wager;
+        function calculateSlipPayout() {
+            if(slipLegs.length === 0) return;
+            const wager = parseFloat(document.getElementById('wagerInput').value) || 0;
             
-            // Build the wager object
-            const newBet = {
-                id: 'bet_' + Date.now(),
-                match: activeSlip.match,
-                market: activeSlip.market,
-                selection: activeSlip.selection,
-                odds: activeSlip.odds,
-                risk: wager,
-                timestamp: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-                status: 'pending' // Simulated settlement follows
-            };
+            let combinedOddsMultiplier = 1;
+            let summaryOddsText = "";
 
-            userState.bets.unshift(newBet);
+            if (slipMode === "parlay") {
+                slipLegs.forEach(leg => {
+                    combinedOddsMultiplier *= (leg.odds > 0) ? (1 + (leg.odds / 100)) : (1 + (100 / Math.abs(leg.odds)));
+                });
+                let totalAmerican = (combinedOddsMultiplier >= 2) ? Math.round((combinedOddsMultiplier - 1) * 100) : Math.round(-100 / (combinedOddsMultiplier - 1));
+                summaryOddsText = totalAmerican > 0 ? "+"+totalAmerican : totalAmerican;
+            } else {
+                summaryOddsText = "Individual Line Pricing";
+            }
+
+            document.getElementById('summaryOdds').innerText = summaryOddsText;
+
+            let totalProfit = 0;
+            if(wager > 0) {
+                if(slipMode === "parlay") {
+                    totalProfit = wager * (combinedOddsMultiplier - 1);
+                } else {
+                    slipLegs.forEach(leg => {
+                        totalProfit += (leg.odds > 0) ? wager * (leg.odds / 100) : wager * (100 / Math.abs(leg.odds));
+                    });
+                }
+            }
+
+            let riskCostTotal = slipMode === 'parlay' ? wager : (wager * slipLegs.length);
+
+            document.getElementById('potentialProfit').innerText = `$${totalProfit.toFixed(2)}`;
+            document.getElementById('potentialPayout').innerText = `$${(riskCostTotal + totalProfit).toFixed(2)}`;
+        }
+
+        function placeBetsFromSlip() {
+            const wager = parseFloat(document.getElementById('wagerInput').value);
+            if(!wager || wager <= 0) return alert("Please specify a valid wager amount.");
+
+            let totalCost = slipMode === "parlay" ? wager : (wager * slipLegs.length);
+            if(totalCost > userState.balance) return alert("Insufficient account coin balances.");
+
+            userState.balance -= totalCost;
+
+            if (slipMode === "parlay") {
+                userState.slips.unshift({
+                    slipId: "slip_" + Date.now(),
+                    type: "parlay",
+                    legs: JSON.parse(JSON.stringify(slipLegs)),
+                    risk: wager,
+                    status: "pending"
+                });
+            } else {
+                slipLegs.forEach((leg, i) => {
+                    userState.slips.unshift({
+                        slipId: `slip_${Date.now()}_${i}`,
+                        type: "straight",
+                        legs: [JSON.parse(JSON.stringify(leg))],
+                        risk: wager,
+                        status: "pending"
+                    });
+                });
+            }
+
+            slipLegs = [];
+            document.getElementById('wagerInput').value = '';
             saveState();
             updateBalanceUI();
-            updateHistoryUI();
-            clearSlip();
-
-            // Settle bet automatically via timer loop to make gameplay fully functional
-            simulateSettlement(newBet.id);
+            updateSlipsPortfolioUI();
+            updateSimulatorsUI();
+            renderSlipUI();
+            navigateTo('slips');
         }
 
-        // Simulated settlement so the sportsbook acts dynamically live
-        function simulateSettlement(betId) {
-            setTimeout(() => {
-                const betIdx = userState.bets.findIndex(b => b.id === betId);
-                if(betIdx === -1) return;
+        function updateSlipsPortfolioUI() {
+            const feed = document.getElementById('slipsPortfolioFeed');
+            const badge = document.getElementById('activeSlipsBadge');
+            feed.innerHTML = '';
 
-                // 50/50 Chance of winning!
-                const didWin = Math.random() >= 0.5;
-                const bet = userState.bets[betIdx];
+            let pendingCount = userState.slips.filter(s => s.status === 'pending').length;
+            if(pendingCount > 0) {
+                badge.innerText = pendingCount;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+
+            if(userState.slips.length === 0) {
+                feed.innerHTML = `<div class="col-span-full bg-slate-900 border border-slate-800 rounded-xl p-8 text-center text-xs text-slate-500 italic">No historical slips found. Go place wagers on active sports!</div>`;
+                return;
+            }
+
+            userState.slips.forEach(s => {
+                let badgeClass = s.status === 'won' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : s.status === 'lost' ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20 animate-pulse';
                 
-                if(didWin) {
-                    let profit = 0;
-                    if(bet.odds > 0) {
-                        profit = bet.risk * (bet.odds / 100);
-                    } else {
-                        profit = bet.risk * (100 / Math.abs(bet.odds));
+                let legsHtml = s.legs.map(leg => {
+                    let legResultSign = "";
+                    if (s.status !== 'pending' || leg.settledResult) {
+                        legResultSign = leg.settledResult === 'won' ? '<i class="fa-solid fa-check text-emerald-400 ml-1"></i>' : '<i class="fa-solid fa-xmark text-red-400 ml-1"></i>';
                     }
-                    const returnAmt = bet.risk + profit;
-                    userState.balance += returnAmt;
-                    bet.status = 'won';
-                } else {
-                    bet.status = 'lost';
-                }
+                    return `
+                        <div class="bg-slate-950 p-2 rounded border border-slate-800 text-[11px] flex justify-between items-center">
+                            <div>
+                                <div class="font-bold text-slate-200 flex items-center">${leg.selection} ${legResultSign}</div>
+                                <div class="text-[10px] text-slate-500">${leg.description}</div>
+                            </div>
+                            <span class="font-mono text-slate-400 font-bold">${leg.odds > 0 ? '+'+leg.odds : leg.odds}</span>
+                        </div>
+                    `;
+                }).join('');
 
-                saveState();
-                updateBalanceUI();
-                updateHistoryUI();
-            }, 7000); // Settles inside 7 seconds to keep actions rapid and fun
+                const card = `
+                    <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col justify-between space-y-3">
+                        <div class="flex justify-between items-center text-xs">
+                            <span class="uppercase tracking-wider font-extrabold text-[10px] text-blue-400">${s.type} Ticket</span>
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase ${badgeClass}">${s.status}</span>
+                        </div>
+                        <div class="space-y-1.5">${legsHtml}</div>
+                        <div class="border-t border-slate-800/80 pt-2 flex justify-between text-[11px] text-slate-400">
+                            <span>Risked: <strong class="text-white">$${s.risk.toFixed(2)}</strong></span>
+                            <span>Status: <strong class="text-slate-300 capitalize">${s.status}</strong></span>
+                        </div>
+                    </div>
+                `;
+                feed.insertAdjacentHTML('beforeend', card);
+            });
+        }
+
+        // AGGREGATOR PANEL FOR NON-AUTORESOLVED GAMES: COLLECT ACTIVE GAME SKELETONS INTO SELECTORS
+        function updateSimulatorsUI() {
+            const container = document.getElementById('simulatorControlsGrid');
+            container.innerHTML = '';
+
+            let openMatchesMap = {};
+            userState.slips.forEach(s => {
+                if(s.status === 'pending') {
+                    s.legs.forEach(leg => {
+                        if(!leg.settledResult) {
+                            openMatchesMap[leg.matchId] = leg.description;
+                        }
+                    });
+                }
+            });
+
+            let matchIds = Object.keys(openMatchesMap);
+            if(matchIds.length === 0) {
+                container.innerHTML = `<div class="col-span-full text-slate-500 text-xs italic bg-slate-950 p-4 border border-slate-800 rounded-lg">No matches currently awaiting results. Place some bets to simulate results here!</div>`;
+                return;
+            }
+
+            matchIds.forEach(mId => {
+                let description = openMatchesMap[mId];
+                let teams = description.split(' @ ');
+                let awayTeam = teams[0] || "Away Team";
+                let homeTeam = teams[1] || "Home Team";
+
+                let simCard = `
+                    <div class="bg-slate-950 border border-slate-800 p-3 rounded-lg space-y-2">
+                        <div class="text-[10px] font-bold text-slate-500 uppercase tracking-wider truncate">${description}</div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button onclick="resolveMatch('${mId}', '${awayTeam}')" class="bg-blue-600/10 hover:bg-blue-600 border border-blue-500/20 text-blue-400 hover:text-white px-2 py-1.5 text-xs font-bold rounded transition-colors truncate">
+                                ${awayTeam} Wins
+                            </button>
+                            <button onclick="resolveMatch('${mId}', '${homeTeam}')" class="bg-blue-600/10 hover:bg-blue-600 border border-blue-500/20 text-blue-400 hover:text-white px-2 py-1.5 text-xs font-bold rounded transition-colors truncate">
+                                ${homeTeam} Wins
+                            </button>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(document.createRange().createContextualFragment(simCard));
+            });
+        }
+
+        // EVALUATE PARLAY TICKETS AND STRAIGHTS BASED ON USER CONTROL CHOICE
+        function resolveMatch(matchId, winningTeam) {
+            userState.slips.forEach(s => {
+                if(s.status === 'pending') {
+                    s.legs.forEach(leg => {
+                        if(leg.matchId === matchId) {
+                            leg.settledResult = (leg.selection === winningTeam) ? 'won' : 'lost';
+                        }
+                    });
+
+                    // Evaluate entire ticket status
+                    let totalLegsCount = s.legs.length;
+                    let wonLegsCount = s.legs.filter(l => l.settledResult === 'won').length;
+                    let lostLegsCount = s.legs.filter(l => l.settledResult === 'lost').length;
+
+                    if (lostLegsCount > 0) {
+                        s.status = 'lost';
+                    } else if (wonLegsCount === totalLegsCount) {
+                        s.status = 'won';
+                        // Pay out earnings
+                        let combinedOddsMultiplier = 1;
+                        s.legs.forEach(leg => {
+                            combinedOddsMultiplier *= (leg.odds > 0) ? (1 + (leg.odds / 100)) : (1 + (100 / Math.abs(leg.odds)));
+                        });
+                        let finalPayout = s.risk * combinedOddsMultiplier;
+                        userState.balance += finalPayout;
+                    }
+                }
+            });
+
+            saveState();
+            updateBalanceUI();
+            updateSlipsPortfolioUI();
+            updateSimulatorsUI();
+        }
+
+        function claimReload() {
+            userState.balance += 50.00;
+            saveState();
+            updateBalanceUI();
+            alert("$50.00 in promo sports coins credited to wallet!");
         }
 
         function updateBalanceUI() {
             document.getElementById('userBalance').innerText = `$${userState.balance.toFixed(2)}`;
         }
 
-        function updateHistoryUI() {
-            const historyFeed = document.getElementById('betHistoryFeed');
-            if(userState.bets.length === 0) {
-                historyFeed.innerHTML = `<div class="text-center text-xs text-slate-600 py-4 italic">No wagers placed yet.</div>`;
-                return;
-            }
-
-            historyFeed.innerHTML = '';
-            userState.bets.forEach(bet => {
-                let statusBadge = '';
-                let borderClass = 'border-slate-800 bg-slate-950/40';
-
-                if(bet.status === 'won') {
-                    statusBadge = '<span class="text-emerald-400 font-bold uppercase text-[9px]"><i class="fa-solid fa-circle-check"></i> Won</span>';
-                    borderClass = 'border-emerald-500/20 bg-emerald-500/5';
-                } else if(bet.status === 'lost') {
-                    statusBadge = '<span class="text-red-400 font-bold uppercase text-[9px]"><i class="fa-solid fa-circle-xmark"></i> Lost</span>';
-                    borderClass = 'border-red-500/20 bg-red-500/5';
-                } else {
-                    statusBadge = '<span class="text-amber-400 font-semibold uppercase text-[9px] animate-pulse"><i class="fa-solid fa-hourglass-half"></i> Active (7s)</span>';
-                    borderClass = 'border-amber-500/20 bg-amber-500/5';
-                }
-
-                const betHtml = `
-                    <div class="border ${borderClass} rounded-lg p-3 text-xs space-y-1.5 transition-all">
-                        <div class="flex justify-between items-center">
-                            <span class="font-bold text-slate-300 truncate max-w-[120px]" title="${bet.selection}">${bet.selection}</span>
-                            <span>${statusBadge}</span>
-                        </div>
-                        <div class="flex justify-between text-[11px] text-slate-500">
-                            <span>Risk: $${bet.risk.toFixed(2)}</span>
-                            <span class="font-bold text-emerald-400">${formatOdds(bet.odds)}</span>
-                        </div>
-                        <div class="text-[10px] text-slate-600 flex justify-between">
-                            <span class="truncate max-w-[140px]">${bet.match}</span>
-                            <span>${bet.timestamp}</span>
-                        </div>
-                    </div>
-                `;
-                historyFeed.insertAdjacentHTML('beforeend', betHtml);
-            });
-        }
-
         function saveState() {
-            localStorage.setItem('fakeSportsbookUser', JSON.stringify(userState));
-        }
-
-        function clearHistory() {
-            userState.bets = [];
-            saveState();
-            updateHistoryUI();
+            localStorage.setItem('fakeSportsbookUser_v2', JSON.stringify(userState));
         }
 
         function resetAccount() {
-            if(confirm("Are you sure you want to reset your wallet balance back to $100.00 and clear your betting data?")) {
-                localStorage.removeItem('fakeSportsbookUser');
+            if(confirm("Factory wipe all profile setups, balance metrics, and history charts?")) {
+                localStorage.removeItem('fakeSportsbookUser_v2');
                 location.reload();
             }
         }
